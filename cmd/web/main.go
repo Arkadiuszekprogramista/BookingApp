@@ -1,6 +1,7 @@
 package main
 
 import (
+	"encoding/gob"
 	"fmt"
 	"log"
 	"net/http"
@@ -9,6 +10,7 @@ import (
 	"github.com/alexedwards/scs/v2"
 	"github.com/arkadiuszekprogramista/bookingapp/internal/config"
 	"github.com/arkadiuszekprogramista/bookingapp/internal/handlers"
+	"github.com/arkadiuszekprogramista/bookingapp/internal/models"
 	"github.com/arkadiuszekprogramista/bookingapp/internal/render"
 )
 
@@ -19,29 +21,10 @@ var session *scs.SessionManager
 
 // main is the main application function
 func main() {
-	// change this to true when in production
-	app.InProduction = false
-
-	// Set up the session
-	session = scs.New()
-	session.Lifetime = 24 * time.Hour
-	session.Cookie.Persist = true
-	session.Cookie.SameSite = http.SameSiteLaxMode
-	session.Cookie.Secure = app.InProduction
-
-	app.Session = session
-
-	tc, err := render.CreateTemplateCache()
+	err := run()
 	if err != nil {
-		log.Fatal("cannot create template cache")
+		log.Fatal(err)
 	}
-
-	app.TemplateCache = tc
-	app.UseCache = false
-
-	repo := handlers.NewRepo(&app)
-	handlers.NewHandlers(repo)
-	render.NewTemplates(&app)
 
 	// fmt.Println(fmt.Sprintf("Starting application on port %s", portNumber))
 	fmt.Printf("Starting application on port %s \n", portNumber)
@@ -53,4 +36,34 @@ func main() {
 	}
 	err =  srv.ListenAndServe()
 	log.Fatal(err)
+}
+
+func run() error {
+		//what am i going to put in the session
+		gob.Register(models.Reservation{})
+		// change this to true when in production
+		app.InProduction = false
+	
+		// Set up the session
+		session = scs.New()
+		session.Lifetime = 24 * time.Hour
+		session.Cookie.Persist = true
+		session.Cookie.SameSite = http.SameSiteLaxMode
+		session.Cookie.Secure = app.InProduction
+	
+		app.Session = session
+	
+		tc, err := render.CreateTemplateCache()
+		if err != nil {
+			log.Fatal("cannot create template cache")
+			return err
+		}
+	
+		app.TemplateCache = tc
+		app.UseCache = false
+	
+		repo := handlers.NewRepo(&app)
+		handlers.NewHandlers(repo)
+		render.NewTemplates(&app)
+	return nil
 }
