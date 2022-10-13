@@ -3,6 +3,7 @@ package handlers
 import (
 	"encoding/json"
 	"errors"
+	"log"
 	"net/http"
 	"strconv"
 	"time"
@@ -246,16 +247,18 @@ func (m *Repository) AvailabilityJSON(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	// roomID, err := strconv.Atoi(r.Form.Get("room_id"))
-	// if err != nil {
-	// 	helpers.ServerError(w, err)
-	// 	return
-	// }
-
-	available, err := m.DB.SerachAvailabilityByDatesByRoomID(startDate, endDate, 1)
+	roomID, err := strconv.Atoi(r.Form.Get("room_id"))
 	if err != nil {
 		helpers.ServerError(w, err)
 		return
+	}
+
+	available, err := m.DB.SerachAvailabilityByDatesByRoomID(startDate, endDate, roomID)
+	if err != nil {
+		log.Println(err)
+		// helpers.ServerError(w, err)
+		// return
+		// POKOMBINUJ JAK NIE TO FORUM !
 	}
 	
 	resp := jsonResponse{
