@@ -105,28 +105,7 @@ var TestForPostMethods = []struct {
 		},
 	},
 
-	{"failure to insertion to db", "/make-reservation", "POST", http.StatusSeeOther, reqBody{
-		StartDate: "2050-01-01",
-		EndDate: "2050-01-02",
-		FirstName: "John",
-		LastName: "Smith",
-		Email: "john@email.com",
-		Phone: "233 111 333",
-		RoomID: "2",
-		},
-	},
-	{"failure insersion restricion", "/make-reservation", "POST", http.StatusSeeOther, reqBody{
-		StartDate: "2050-01-01",
-		EndDate: "2050-01-02",
-		FirstName: "John",
-		LastName: "Smith",
-		Email: "john@email.com",
-		Phone: "233 111 333",
-		RoomID: "1000",
-		},
-	},
 }
-
 
 func TestHandlers(t *testing.T) {
 	routes := getRoutes()
@@ -242,6 +221,46 @@ func TestRepository_PostReservation(t *testing.T) {
 		t.Errorf("PostReservation handler returned wrong response code: got %d, wanted %d", rr.Code, http.StatusTemporaryRedirect)
 	}
 
+	//test inserction reservation
+	var reqBody reqBody
+	body := reqBody.getUrlWihtParams("2050-01-01", "2050-01-02","Johny","Smith","email@email.com", "123131 31313  133", "2")
+
+	req, _ = http.NewRequest("POST","/make-reservation", strings.NewReader(body))
+	ctx = getCtx(req)
+	req = req.WithContext(ctx)
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+
+	rr = httptest.NewRecorder()
+
+	handler = http.HandlerFunc(Repo.PostReservation)
+	
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusTemporaryRedirect {
+		t.Errorf("PostReservation handler returned wrong response code for test insercion reservation: got %d, wanted %d", rr.Code, http.StatusTemporaryRedirect)
+	}
+
+	//test inserction room restriction
+	body = reqBody.getUrlWihtParams("2050-01-01", "2050-01-02","Johny","Smith","email@email.com", "123131 31313  133", "1000")
+
+	req, _ = http.NewRequest("POST","/make-reservation", strings.NewReader(body))
+	ctx = getCtx(req)
+	req = req.WithContext(ctx)
+
+	req.Header.Set("Content-Type", "application/x-www-form-urlencoded")
+
+
+	rr = httptest.NewRecorder()
+
+	handler = http.HandlerFunc(Repo.PostReservation)
+	
+	handler.ServeHTTP(rr, req)
+
+	if rr.Code != http.StatusTemporaryRedirect {
+		t.Errorf("PostReservation handler returned wrong response code for insertion room restriction: got %d, wanted %d", rr.Code, http.StatusTemporaryRedirect)
+	}
 }
 
 func getCtx(req *http.Request) context.Context{
