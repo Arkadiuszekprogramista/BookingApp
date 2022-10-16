@@ -14,7 +14,7 @@ func (m *postgresDBRepo) AllUsers() bool {
 
 
 //InsertReservation insert a reservation into database
-func(m *postgresDBRepo) InsertReservation(res models.Reservation) (int, error) {
+func (m *postgresDBRepo) InsertReservation(res models.Reservation) (int, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
 	defer cancel()
 
@@ -44,7 +44,7 @@ func(m *postgresDBRepo) InsertReservation(res models.Reservation) (int, error) {
 }
 
 //InsertRoomRestriction insert a room restrictioninto the database
-func(m *postgresDBRepo) InsertRoomRestriction (r models.RoomRestriction) error {
+func (m *postgresDBRepo) InsertRoomRestriction(r models.RoomRestriction) error {
 	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
 	defer cancel()
 
@@ -145,7 +145,7 @@ func (m * postgresDBRepo) SearchAvailabilityForAllRooms(start, end time.Time) ([
 }
 
 //GetRoomByID gets a room by id
-func(m *postgresDBRepo) GetRoomByID(id int) (models.Room, error) {
+func (m *postgresDBRepo) GetRoomByID(id int) (models.Room, error) {
 	ctx, cancel := context.WithTimeout(context.Background(), 3 * time.Second)
 	defer cancel()
 
