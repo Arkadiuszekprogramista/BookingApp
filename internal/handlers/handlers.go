@@ -108,8 +108,6 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-
-
 	layout := "2006-01-02"
 
 	sd := r.Form.Get("start_date")
@@ -154,7 +152,7 @@ func (m *Repository) PostReservation(w http.ResponseWriter, r *http.Request) {
 	if !form.Valid() {
 		data := make(map[string]interface{})
 		data["reservation"] = reservation
-		http.Error(w, "for in not valid", http.StatusSeeOther)
+		http.Error(w, "form is not valid", http.StatusSeeOther)
 		render.Template(w, r, "make-reservation.page.tmpl", &models.TemplateData{
 			Form: form,
 			Data: data,
@@ -209,6 +207,12 @@ func (m *Repository) Availability(w http.ResponseWriter, r *http.Request) {
 
 //PostAvailability renders the availability page
 func (m *Repository) PostAvailability(w http.ResponseWriter, r *http.Request) {
+	err := r.ParseForm()
+	if err != nil {
+		m.App.Session.Put(r.Context(), "error", "can't parse form!")
+		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
+		return
+	}
 
 	start := r.Form.Get("start")
 	end := r.Form.Get("end")
@@ -231,13 +235,9 @@ func (m *Repository) PostAvailability(w http.ResponseWriter, r *http.Request) {
 
 	rooms, err := m.DB.SearchAvailabilityForAllRooms(startDate, endDate)
 	if err != nil {
-		m.App.Session.Put(r.Context(), "error", "cant't pars rooms!")
+		m.App.Session.Put(r.Context(), "error", "cant't get availability for rooms!")
 		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
 		return
-	}
-
-	for _, i := range rooms {
-		m.App.InfoLog.Println("ROOM", i.ID, i.RoomName)
 	}
 
 	if len(rooms) == 0 {
@@ -275,36 +275,41 @@ type jsonResponse struct {
 //AvailabilityJSON handlers request for availability and send JSON response
 func (m *Repository) AvailabilityJSON(w http.ResponseWriter, r *http.Request) {
 
+	// need to pars equest body
+	err := r.ParseForm()
+
+	if err != nil {
+		//can't parse form, return appropriate json
+		resp := jsonResponse {
+			Ok: false,
+			Messeage: "internal server error",
+		}
+
+		out, _ := json.MarshalIndent(resp, "","    ")
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(out)
+		return
+	}
 
 	sd := r.Form.Get("start")
 	ed := r.Form.Get("end")
 
 	layout := "2006-01-02"
+	startDate, _ := time.Parse(layout, sd)
+	endDate, _ := time.Parse(layout, ed)
 
-	startDate, err := time.Parse(layout, sd)
-	if err != nil {
-		m.App.Session.Put(r.Context(), "error", "cant't parse start date")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		return
-	}
-
-	endDate, err := time.Parse(layout, ed)
-	if err != nil {
-		m.App.Session.Put(r.Context(), "error", "cant't parse end date")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		return
-	}
-
-	roomID, err := strconv.Atoi(r.Form.Get("room_id"))
-	if err != nil {
-		m.App.Session.Put(r.Context(), "error", "invalid data!")
-		http.Redirect(w, r, "/", http.StatusTemporaryRedirect)
-		return
-	}
+	roomID, _ := strconv.Atoi(r.Form.Get("room_id"))
 
 	available, err := m.DB.SerachAvailabilityByDatesByRoomID(startDate, endDate, roomID)
 	if err != nil {
-		helpers.ServerError(w, err)
+		resp := jsonResponse{
+			Ok: false,
+			Messeage: "error querying database",
+		}
+		
+		out, _ := json.MarshalIndent(resp,"","    ")
+		w.Header().Set("Content-Type", "application/json")
+		w.Write(out)
 		return
 	}
 	
@@ -316,12 +321,7 @@ func (m *Repository) AvailabilityJSON(w http.ResponseWriter, r *http.Request) {
 		RoomID: strconv.Itoa(roomID),
 	}
 
-
-	out, err := json.MarshalIndent(resp, "", "     ")
-	if err != nil {
-		helpers.ServerError(w, err)
-		return
-	}
+	out, _ := json.MarshalIndent(resp, "", "    ")
 
 	w.Header().Set("Content-Type", "application/json")
 	w.Write(out)
